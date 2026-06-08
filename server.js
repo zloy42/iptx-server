@@ -93,7 +93,7 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Helper: convert integer IDs to strings for Xtream compat
+// Helper: convert all numbers to strings for Xtream API compat
 function xtreamJson(data) {
   if (Array.isArray(data)) {
     return data.map(item => xtreamJson(item));
@@ -101,8 +101,7 @@ function xtreamJson(data) {
   if (data && typeof data === 'object') {
     const result = {};
     for (const [key, val] of Object.entries(data)) {
-      // Convert category_id, stream_id, series_id, parent_id, episode_num to string
-      if (['category_id', 'stream_id', 'series_id', 'parent_id', 'episode_num', 'num'].includes(key) && typeof val === 'number') {
+      if (typeof val === 'number') {
         result[key] = String(val);
       } else {
         result[key] = xtreamJson(val);
@@ -297,7 +296,11 @@ function proxyStream(req, res) {
     return res.status(404).send('Stream not found');
   }
 
-  const targetUrl = channel.stream_url;
+  // Build target URL
+  const baseStreamUrl = channel.stream_url;
+  const baseDir = baseStreamUrl.substring(0, baseStreamUrl.lastIndexOf('/') + 1);
+  const segmentPath = req.params[0]; // e.g. "media_123.ts"
+  const targetUrl = segmentPath ? baseDir + segmentPath : baseStreamUrl;
 
   const headers = {
     'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -309,20 +312,25 @@ function proxyStream(req, res) {
   fetchWithHeaders(targetUrl, headers)
     .then(({ response: upstreamRes, finalUrl }) => {
       const contentType = upstreamRes.headers['content-type'] || '';
+      const authStr = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
-      // For HLS playlists, rewrite relative URLs to absolute (pointing to CDN)
+      // For HLS playlists, rewrite all URLs to go through our proxy
       if (contentType.includes('mpegurl') || contentType.includes('x-mpegurl') || targetUrl.match(/\.m3u8?$/i)) {
         let body = '';
         upstreamRes.on('data', chunk => body += chunk.toString());
         upstreamRes.on('end', () => {
-          const baseDir = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+          const newBaseDir = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
           const rewritten = body.split('\n').map(line => {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) return line;
-            if (!trimmed.match(/^https?:\/\//i)) {
-              return new URL(trimmed, baseDir).href;
+            // Extract just the filename (last path segment)
+            let segmentFile;
+            if (trimmed.match(/^https?:\/\//i)) {
+              segmentFile = trimmed.substring(trimmed.lastIndexOf('/') + 1);
+            } else {
+              segmentFile = trimmed;
             }
-            return line;
+            return `/live/${channel.stream_id}/${segmentFile}?${authStr}`;
           }).join('\n');
           res.set('Content-Type', 'application/vnd.apple.mpegurl');
           res.send(rewritten);
@@ -330,9 +338,11 @@ function proxyStream(req, res) {
         return;
       }
 
-      // For everything else (TS segments, key files, etc.), pipe directly
+      // For everything else (TS, M4S, key files, etc.), pipe directly
       const respHeaders = { ...upstreamRes.headers };
       delete respHeaders['transfer-encoding'];
+      delete respHeaders['access-control-allow-origin'];
+      res.set('Access-Control-Allow-Origin', '*');
       res.writeHead(upstreamRes.statusCode, respHeaders);
       upstreamRes.pipe(res);
     })
@@ -344,8 +354,10 @@ function proxyStream(req, res) {
     });
 }
 
-// GET /live/:id — proxy a live stream with stored headers
+// GET /live/:id — proxy live stream playlist
+// GET /live/:id/* — proxy segments
 app.get('/live/:id', proxyStream);
+app.get('/live/:id/*', proxyStream);
 
 // GET / — status page
 app.get('/', (req, res) => {
