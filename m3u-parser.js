@@ -34,7 +34,22 @@ function parseM3U(content, sourceUrl = '') {
         stream_url: '',
         added: Math.floor(Date.now() / 1000)
       };
-    } else if (trimmed && !trimmed.startsWith('#') && currentExtinf) {
+    } else if (trimmed && currentExtinf) {
+      // Skip EXTVLCOPT, KODIPROP, and empty lines between EXTINF and URL
+      if (trimmed.startsWith('#EXTVLCOPT:') || trimmed.startsWith('#KODIPROP:')) {
+        // Store user-agent and referrer if present
+        if (trimmed.startsWith('#EXTVLCOPT:http-user-agent=')) {
+          currentExtinf.user_agent = trimmed.split('=').slice(1).join('=');
+        }
+        if (trimmed.startsWith('#EXTVLCOPT:http-referrer=')) {
+          currentExtinf.referrer = trimmed.split('=').slice(1).join('=');
+        }
+        continue;
+      }
+      // Skip commented-out channels (###)
+      if (trimmed.startsWith('###') || trimmed.startsWith('#')) {
+        continue;
+      }
       // This is the stream URL
       currentExtinf.stream_url = trimmed;
       // Assign category_id based on category_name
