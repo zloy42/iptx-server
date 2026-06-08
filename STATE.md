@@ -10,6 +10,7 @@
 
 ✅ **Server berjalan di localhost:3000**
 ✅ **IPTX Desktop bisa sync & login**
+✅ **Login bug fixed** — `auth` sekarang number (bukan string), auth failure return HTTP 200 (bukan 401)
 ⚠️ **Streaming masih buffering** — proxy sudah benar, tapi perlu debug lebih lanjut
 
 ---

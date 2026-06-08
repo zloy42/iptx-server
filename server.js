@@ -85,7 +85,8 @@ http://example.com/stream/discovery.ts`;
 function requireAuth(req, res, next) {
   const { username, password } = req.query;
   if (!authenticate(username, password)) {
-    return res.status(401).json({
+    // Xtream clients expect HTTP 200 with auth:0, NOT HTTP 401
+    return res.status(200).json({
       user_info: { auth: 0, username: username || '' }
     });
   }
@@ -93,7 +94,10 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Helper: convert all numbers to strings for Xtream API compat
+// Helper: convert IDs to strings for Xtream API compat
+// Only stringify specific fields, NOT auth/port/timestamps
+const STRING_FIELDS = ['category_id','stream_id','series_id','parent_id','episode_num','num'];
+
 function xtreamJson(data) {
   if (Array.isArray(data)) {
     return data.map(item => xtreamJson(item));
@@ -101,7 +105,7 @@ function xtreamJson(data) {
   if (data && typeof data === 'object') {
     const result = {};
     for (const [key, val] of Object.entries(data)) {
-      if (typeof val === 'number') {
+      if (STRING_FIELDS.includes(key) && typeof val === 'number') {
         result[key] = String(val);
       } else {
         result[key] = xtreamJson(val);
