@@ -249,6 +249,24 @@ app.get('/get.php', requireAuth, (req, res) => {
 // Stream Proxy — forwards with stored headers
 // ──────────────────────────────────────────
 
+// URL map: short keys → original URLs. Cleaned up periodically.
+const urlMap = new Map();
+let urlSeq = 0;
+
+// Clean old map entries every 5 minutes
+setInterval(() => {
+  const threshold = Date.now() - 300_000; // 5 min
+  for (const [key, entry] of urlMap) {
+    if (entry.timestamp < threshold) urlMap.delete(key);
+  }
+}, 300_000);
+
+function storeUrl(originalUrl) {
+  const key = ++urlSeq;
+  urlMap.set(key, { url: originalUrl, timestamp: Date.now() });
+  return key;
+}
+
 // Helper: fetch URL with custom headers and pipe response
 function fetchWithHeaders(targetUrl, headers, redirects = 0) {
   return new Promise((resolve, reject) => {
@@ -302,9 +320,22 @@ function proxyStream(req, res) {
 
   // Build target URL
   const baseStreamUrl = channel.stream_url;
-  const baseDir = baseStreamUrl.substring(0, baseStreamUrl.lastIndexOf('/') + 1);
-  const segmentPath = req.params[0]; // e.g. "media_123.ts"
-  const targetUrl = segmentPath ? baseDir + segmentPath : baseStreamUrl;
+  const segmentPath = req.params[0];
+
+  let targetUrl;
+  if (segmentPath) {
+    // Try Map lookup (new format: /live/{id}/{key})
+    const key = parseInt(segmentPath);
+    if (!isNaN(key) && urlMap.has(key)) {
+      targetUrl = urlMap.get(key).url;
+    } else {
+      // Fallback: treat as filename + baseDir
+      const baseDir = baseStreamUrl.substring(0, baseStreamUrl.lastIndexOf('/') + 1);
+      targetUrl = baseDir + segmentPath;
+    }
+  } else {
+    targetUrl = baseStreamUrl;
+  }
 
   const headers = {
     'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -327,14 +358,16 @@ function proxyStream(req, res) {
           const rewritten = body.split('\n').map(line => {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) return line;
-            // Extract just the filename (last path segment)
-            let segmentFile;
+            // Resolve relative URLs against the playlist URL
+            let resolvedUrl;
             if (trimmed.match(/^https?:\/\//i)) {
-              segmentFile = trimmed.substring(trimmed.lastIndexOf('/') + 1);
+              resolvedUrl = trimmed;
             } else {
-              segmentFile = trimmed;
+              resolvedUrl = new URL(trimmed, finalUrl).href;
             }
-            return `/live/${channel.stream_id}/${segmentFile}?${authStr}`;
+            // Store URL in map and use short numeric key
+            const key = storeUrl(resolvedUrl);
+            return `/live/${channel.stream_id}/${key}?${authStr}`;
           }).join('\n');
           res.set('Content-Type', 'application/vnd.apple.mpegurl');
           res.send(rewritten);

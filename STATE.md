@@ -60,26 +60,31 @@ M3U_FILE=C:\Users\KEN\Desktop\IPTV\nasional.m3u
 
 | ID | Nama | Status | Sumber |
 |---|---|---|---|
-| 1 | MNCTV | 🟡 | rctiplus |
-| 2 | RCTI | 🟡 | rctiplus |
-| 3 | GTV | 🟡 | rctiplus |
-| 4 | SCTV | 🟡 | dens.tv |
-| 5 | INDOSIAR | 🟡 | dens.tv |
+| 1 | MNCTV | ✅ | rctiplus |
+| 2 | RCTI | ✅ | rctiplus |
+| 3 | GTV | ✅ | rctiplus |
+| 4 | SCTV | ✅ | dens.tv |
+| 5 | INDOSIAR | ✅ | dens.tv |
 | 6 | ANTV | ❌ | Vision+ DRM |
-| 7 | MOJI TV | 🟡 | dens.tv |
+| 7 | MOJI TV | ✅ | dens.tv |
 | 8 | MENTARI TV | ❌ | MPD/DASH |
-| 9 | TRANS TV | 🟡 | detik.com |
-| 10 | TRANS 7 | 🟡 | detik.com |
+| 9 | TRANS TV | ❌ | detik.com (URL mati) |
+| 10 | TRANS 7 | ❌ | detik.com (URL mati) |
 | 11 | MAGNA CH | 🟡 | medcom.id |
-| 12 | MDTV | 🟡 | dens.tv |
-| 13 | RTV | 🟡 | dens.tv |
+| 12 | MDTV | ✅ | dens.tv |
+| 13 | RTV | ✅ | dens.tv |
 | 14 | Nusantara TV | 🟡 | siar.us |
-| 15 | Hanacaraka TV | 🟡 | dens.tv |
-| 16-18 | TVRI (3 channel) | 🟡 | tvri.go.id |
+| 15 | Hanacaraka TV | ✅ | dens.tv |
+| 16 | TVRI Nasional | ✅ | tvri.go.id |
+| 17 | TVRI SPORT | ✅ | tvri.go.id |
+| 18 | TVRI World | ✅ | tvri.go.id |
 | 19 | Metro TV | 🟡 | medcom.id |
-| 20 | iNews | 🟡 | rctiplus |
+| 20 | iNews | ✅ | rctiplus |
 | 21 | CNN Indonesia | ❌ | 502 |
 | 22 | CNBC Indonesia | 🟡 | cnbcindonesia.com |
+| 23 | Kompas TV | 🟡 | dens.tv |
+| 24 | tvOne | 🟡 | dens.tv |
+| 25 | Beritasatu | ✅ | dens.tv |
 
 ## Todo ke Depan
 
