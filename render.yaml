@@ -11,8 +11,6 @@ services:
     buildCommand: npm ci --omit=dev
     startCommand: node server.js
     envVars:
-      - key: PORT
-        value: 3000
       - key: SERVER_URL
         value: https://iptx-server.onrender.com
       - key: USERS

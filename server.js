@@ -6,6 +6,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import https from 'https';
+import fs from 'fs';
 import { URL } from 'url';
 
 dotenv.config();
@@ -28,6 +29,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// ── Global error handlers — prevent crash on unhandled rejections ──
+process.on('unhandledRejection', (reason) => {
+  console.error(`[FATAL] Unhandled Rejection: ${reason?.message || reason}`);
+});
+process.on('uncaughtException', (err) => {
+  console.error(`[FATAL] Uncaught Exception: ${err.message}`);
+  // Don't exit — let the server keep running
+});
 
 // ──────────────────────────────────────────
 // Load M3U source
@@ -147,7 +157,10 @@ app.get('/player_api.php', requireAuth, (req, res) => {
       const baseUrl = serverInfo.url;
       const proxied = channels.map(ch => ({
         ...ch,
-        stream_url: `${baseUrl}/live/${ch.stream_id}?username=${req.query.username}&password=${req.query.password}`
+        // Standard Xtream format: /live/{username}/{password}/{id}.m3u8
+        stream_url: `${baseUrl}/live/${req.query.username}/${req.query.password}/${ch.stream_id}.m3u8`,
+        // Also include raw URL for players that prefer direct CDN access
+        raw_url: `${baseUrl}/live/raw/${ch.stream_id}?username=${req.query.username}&password=${req.query.password}`
       }));
       return res.json(xtreamJson(proxied));
     }
@@ -249,22 +262,75 @@ app.get('/get.php', requireAuth, (req, res) => {
 // Stream Proxy — forwards with stored headers
 // ──────────────────────────────────────────
 
-// URL map: short keys → original URLs. Cleaned up periodically.
+// URL map: short hash keys → original URLs. Saved to disk for crash survival.
 const urlMap = new Map();
+const MAP_FILE = './urlmap.json';
 let urlSeq = 0;
+
+// Simple hash: deterministic short string from URL
+function hashUrl(url) {
+  let hash = 0;
+  for (let i = 0; i < url.length; i++) {
+    const char = url.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return (hash >>> 0).toString(36); // positive, short
+}
+
+// Save map to disk every 30 seconds
+function saveMapToDisk() {
+  try {
+    const obj = {};
+    for (const [k, v] of urlMap) obj[k] = { url: v.url, ts: v.timestamp };
+    fs.writeFileSync(MAP_FILE, JSON.stringify(obj));
+  } catch(e) {
+    console.error(`[MAP] Save error: ${e.message}`);
+  }
+}
+setInterval(saveMapToDisk, 30_000);
+
+// Load map from disk on startup
+function loadMapFromDisk() {
+  try {
+    const data = fs.readFileSync(MAP_FILE, 'utf-8');
+    const obj = JSON.parse(data);
+    for (const [k, v] of Object.entries(obj)) {
+      urlMap.set(k, { url: v.url, timestamp: v.ts || Date.now() });
+    }
+    console.log(`[MAP] Loaded ${urlMap.size} entries from disk`);
+  } catch(e) { /* file doesn't exist yet */ }
+}
+loadMapFromDisk();
 
 // Clean old map entries every 5 minutes
 setInterval(() => {
-  const threshold = Date.now() - 300_000; // 5 min
+  const threshold = Date.now() - 300_000;
   for (const [key, entry] of urlMap) {
     if (entry.timestamp < threshold) urlMap.delete(key);
   }
 }, 300_000);
 
 function storeUrl(originalUrl) {
-  const key = ++urlSeq;
+  // Use hash as key (deterministic) — survives restarts
+  const key = hashUrl(originalUrl);
   urlMap.set(key, { url: originalUrl, timestamp: Date.now() });
   return key;
+}
+
+// Resolve a segment key to its original URL
+function resolveKey(key) {
+  // 1. Try hash lookup
+  if (urlMap.has(key)) return urlMap.get(key).url;
+  // 2. Try numeric (backward compat with old map)
+  const numKey = parseInt(key);
+  if (!isNaN(numKey) && urlMap.has(numKey)) return urlMap.get(numKey).url;
+  // 3. Fallback: try base64 decode
+  try {
+    const decoded = Buffer.from(key, 'base64url').toString('utf-8');
+    if (decoded.startsWith('http://') || decoded.startsWith('https://')) return decoded;
+  } catch(e) {}
+  return null;
 }
 
 // Helper: fetch URL with custom headers and pipe response
@@ -324,12 +390,10 @@ function proxyStream(req, res) {
 
   let targetUrl;
   if (segmentPath) {
-    // Try Map lookup (new format: /live/{id}/{key})
-    const key = parseInt(segmentPath);
-    if (!isNaN(key) && urlMap.has(key)) {
-      targetUrl = urlMap.get(key).url;
-    } else {
-      // Fallback: treat as filename + baseDir
+    // Resolve via hash, numeric, or base64 fallback
+    targetUrl = resolveKey(segmentPath);
+    if (!targetUrl) {
+      // Ultimate fallback: treat as filename + baseDir
       const baseDir = baseStreamUrl.substring(0, baseStreamUrl.lastIndexOf('/') + 1);
       targetUrl = baseDir + segmentPath;
     }
@@ -391,7 +455,123 @@ function proxyStream(req, res) {
     });
 }
 
-// GET /live/:id — proxy live stream playlist
+// GET /live/raw/:id — pass-through stream (no URL rewriting)
+// For players that prefer direct CDN URLs (MUST be before /live/:id/*)
+app.get('/live/raw/:id', (req, res) => {
+  const { username, password } = req.query;
+  if (!authenticate(username, password)) {
+    return res.status(200).json({ user_info: { auth: 0, username: username || '' } });
+  }
+  const channel = getChannelById(req.params.id);
+  if (!channel || !channel.stream_url) {
+    return res.status(404).send('Stream not found');
+  }
+  const headers = {
+    'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': channel.referrer || ''
+  };
+  console.log(`[RAW] ${channel.name} → ${channel.stream_url}`);
+  fetchWithHeaders(channel.stream_url, headers)
+    .then(({ response: upstreamRes, finalUrl }) => {
+      const contentType = upstreamRes.headers['content-type'] || '';
+      // For HLS playlists, rewrite relative URLs to ABSOLUTE CDN URLs
+      if (contentType.includes('mpegurl') || contentType.includes('x-mpegurl') || finalUrl.match(/\.m3u8?$/i)) {
+        let body = '';
+        upstreamRes.on('data', chunk => body += chunk.toString());
+        upstreamRes.on('end', () => {
+          const baseDir = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+          const absolute = body.split('\n').map(line => {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#') || trimmed.match(/^https?:\/\//i)) return line;
+            // Resolve relative URL against CDN base
+            return new URL(trimmed, baseDir).href;
+          }).join('\n');
+          res.set('Content-Type', 'application/vnd.apple.mpegurl');
+          res.set('Access-Control-Allow-Origin', '*');
+          res.send(absolute);
+        });
+        return;
+      }
+      // Non-HLS: pipe directly
+      upstreamRes.headers['access-control-allow-origin'] = '*';
+      res.writeHead(upstreamRes.statusCode, upstreamRes.headers);
+      upstreamRes.pipe(res);
+    })
+    .catch((err) => {
+      console.error(`[RAW] Error: ${err.message}`);
+      res.status(502).send(`Proxy error: ${err.message}`);
+    });
+});
+
+// GET /live/:username/:password/:channelId — Standard Xtream live URL format
+// IPTX Desktop & other clients use: /live/{user}/{pass}/{channel_id}.m3u8
+app.get('/live/:username/:password/:channelId', (req, res) => {
+  const { username, password, channelId } = req.params;
+  if (!authenticate(username, password)) {
+    return res.status(200).json({ user_info: { auth: 0, username: username || '' } });
+  }
+
+  // Strip .m3u8 extension if present
+  const id = channelId.replace(/\.m3u8?$/i, '');
+
+  const channel = getChannelById(id);
+  if (!channel || !channel.stream_url) {
+    return res.status(404).send('Stream not found');
+  }
+
+  const headers = {
+    'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': channel.referrer || ''
+  };
+
+  console.log(`[LIVE] ${channel.name} → ${channel.stream_url}`);
+
+  fetchWithHeaders(channel.stream_url, headers)
+    .then(({ response: upstreamRes, finalUrl }) => {
+      const contentType = upstreamRes.headers['content-type'] || '';
+      const authStr = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+
+      // For HLS playlists, rewrite URLs through our proxy
+      if (contentType.includes('mpegurl') || contentType.includes('x-mpegurl') || finalUrl.match(/\.m3u8?$/i)) {
+        let body = '';
+        upstreamRes.on('data', chunk => body += chunk.toString());
+        upstreamRes.on('end', () => {
+          const newBaseDir = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+          const rewritten = body.split('\n').map(line => {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) return line;
+            let resolvedUrl;
+            if (trimmed.match(/^https?:\/\//i)) {
+              resolvedUrl = trimmed;
+            } else {
+              resolvedUrl = new URL(trimmed, finalUrl).href;
+            }
+            const key = storeUrl(resolvedUrl);
+            return `/live/${channel.stream_id}/${key}?${authStr}`;
+          }).join('\n');
+          res.set('Content-Type', 'application/vnd.apple.mpegurl');
+          res.set('Access-Control-Allow-Origin', '*');
+          res.send(rewritten);
+        });
+        return;
+      }
+
+      // Non-HLS: pipe directly
+      const respHeaders = { ...upstreamRes.headers };
+      delete respHeaders['transfer-encoding'];
+      res.set('Access-Control-Allow-Origin', '*');
+      res.writeHead(upstreamRes.statusCode, respHeaders);
+      upstreamRes.pipe(res);
+    })
+    .catch((err) => {
+      console.error(`[LIVE] Error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(502).send(`Proxy error: ${err.message}`);
+      }
+    });
+});
+
+// GET /live/:id — proxy live stream playlist (rewritten)
 // GET /live/:id/* — proxy segments
 app.get('/live/:id', proxyStream);
 app.get('/live/:id/*', proxyStream);
