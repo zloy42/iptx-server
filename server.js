@@ -4,6 +4,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'http';
+import https from 'https';
+import { URL } from 'url';
 
 dotenv.config();
 
@@ -116,7 +119,14 @@ app.get('/player_api.php', requireAuth, (req, res) => {
       const channels = category_id
         ? getChannelsByCategory(category_id)
         : getChannels();
-      return res.json(channels);
+      // Return proxied URLs so headers (UA, Referrer) are sent
+      const serverInfo = getServerInfo();
+      const baseUrl = serverInfo.url;
+      const proxied = channels.map(ch => ({
+        ...ch,
+        stream_url: `${baseUrl}/live/${ch.stream_id}?username=${req.query.username}&password=${req.query.password}`
+      }));
+      return res.json(proxied);
     }
 
     case 'get_live_info': {
@@ -211,6 +221,87 @@ app.get('/get.php', requireAuth, (req, res) => {
   xml += '</channels>';
   res.send(xml);
 });
+
+// ──────────────────────────────────────────
+// Stream Proxy — forwards with stored headers
+// ──────────────────────────────────────────
+
+// Helper: fetch URL with custom headers and pipe response
+function fetchWithHeaders(targetUrl, headers, redirects = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirects > 5) {
+      return reject(new Error('Too many redirects'));
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(targetUrl);
+    } catch (e) {
+      return reject(new Error(`Invalid URL: ${targetUrl}`));
+    }
+
+    const client = parsed.protocol === 'https:' ? https : http;
+    const options = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: 'GET',
+      headers
+    };
+
+    const req = client.request(options, (res) => {
+      // Follow redirects
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const redirectUrl = new URL(res.headers.location, targetUrl).href;
+        console.log(`[PROXY] Redirect ${redirects + 1} → ${redirectUrl}`);
+        res.resume(); // Drain response
+        fetchWithHeaders(redirectUrl, headers, redirects + 1).then(resolve, reject);
+        return;
+      }
+      resolve(res);
+    });
+
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function proxyStream(req, res) {
+  const { username, password } = req.query;
+  if (!authenticate(username, password)) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  const channel = getChannelById(req.params.id);
+  if (!channel || !channel.stream_url) {
+    return res.status(404).send('Stream not found');
+  }
+
+  const headers = {
+    'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': channel.referrer || ''
+  };
+
+  console.log(`[PROXY] ${channel.name} → ${channel.stream_url}`);
+
+  fetchWithHeaders(channel.stream_url, headers)
+    .then((upstreamRes) => {
+      // Copy all headers except transfer-encoding
+      const respHeaders = { ...upstreamRes.headers };
+      delete respHeaders['transfer-encoding'];
+      res.writeHead(upstreamRes.statusCode, respHeaders);
+      upstreamRes.pipe(res);
+    })
+    .catch((err) => {
+      console.error(`[PROXY] Error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(502).send(`Proxy error: ${err.message}`);
+      }
+    });
+}
+
+// GET /live/:id — proxy a live stream with stored headers
+app.get('/live/:id', proxyStream);
 
 // GET / — status page
 app.get('/', (req, res) => {
