@@ -93,6 +93,26 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Helper: convert integer IDs to strings for Xtream compat
+function xtreamJson(data) {
+  if (Array.isArray(data)) {
+    return data.map(item => xtreamJson(item));
+  }
+  if (data && typeof data === 'object') {
+    const result = {};
+    for (const [key, val] of Object.entries(data)) {
+      // Convert category_id, stream_id, series_id, parent_id, episode_num to string
+      if (['category_id', 'stream_id', 'series_id', 'parent_id', 'episode_num', 'num'].includes(key) && typeof val === 'number') {
+        result[key] = String(val);
+      } else {
+        result[key] = xtreamJson(val);
+      }
+    }
+    return result;
+  }
+  return data;
+}
+
 // ──────────────────────────────────────────
 // Xtream API Endpoints
 // ──────────────────────────────────────────
@@ -104,16 +124,16 @@ app.get('/player_api.php', requireAuth, (req, res) => {
 
   // If no action, return user info + available categories
   if (!action) {
-    return res.json({
+    return res.json(xtreamJson({
       user_info: getUserInfo(user),
       server_info: getServerInfo()
-    });
+    }));
   }
 
   switch (action) {
     // ── Live TV ──
     case 'get_live_categories':
-      return res.json(getCategories());
+      return res.json(xtreamJson(getCategories()));
 
     case 'get_live_streams': {
       const channels = category_id
@@ -126,41 +146,41 @@ app.get('/player_api.php', requireAuth, (req, res) => {
         ...ch,
         stream_url: `${baseUrl}/live/${ch.stream_id}?username=${req.query.username}&password=${req.query.password}`
       }));
-      return res.json(proxied);
+      return res.json(xtreamJson(proxied));
     }
 
     case 'get_live_info': {
       if (!stream_id) return res.json({ error: 'Missing stream_id' });
       const ch = getChannelById(stream_id);
-      return res.json(ch || { error: 'Stream not found' });
+      return res.json(xtreamJson(ch || { error: 'Stream not found' }));
     }
 
     // ── VOD / Movies ──
     case 'get_vod_categories':
-      return res.json(getCategories());
+      return res.json(xtreamJson(getCategories()));
 
     case 'get_vod_streams': {
       const channels = category_id
         ? getChannelsByCategory(category_id)
         : getChannels();
-      return res.json(channels);
+      return res.json(xtreamJson(channels));
     }
 
     // ── Series ──
     case 'get_series_categories':
-      return res.json(getCategories());
+      return res.json(xtreamJson(getCategories()));
 
     case 'get_series': {
       const channels = category_id
         ? getChannelsByCategory(category_id)
         : getChannels();
-      return res.json(channels);
+      return res.json(xtreamJson(channels));
     }
 
     case 'get_series_info': {
       if (!series_id) return res.json({ error: 'Missing series_id' });
       const ch = getChannelById(series_id);
-      return res.json({
+      return res.json(xtreamJson({
         seasons: [{ season_number: 1, episode_count: 10 }],
         episodes: {
           '1': Array.from({ length: 10 }, (_, i) => ({
@@ -172,22 +192,22 @@ app.get('/player_api.php', requireAuth, (req, res) => {
           }))
         },
         info: ch || { name: `Series ${series_id}` }
-      });
+      }));
     }
 
     // ── EPG ──
     case 'get_short_epg': {
       if (!stream_id) return res.json([]);
       const limit = parseInt(req.query.limit) || 4;
-      return res.json(getEpg(stream_id, limit));
+      return res.json(xtreamJson(getEpg(stream_id, limit)));
     }
 
     case 'get_simple_data_table': {
       const streamId = req.query.stream_id;
       if (!streamId) return res.json({});
-      return res.json({
+      return res.json(xtreamJson({
         epg_listings: getEpg(streamId, 8)
-      });
+      }));
     }
 
     default:
