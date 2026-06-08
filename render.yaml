@@ -1,0 +1,23 @@
+# Render.com deployment config
+# https://render.com/docs/deploy-node-express-app
+
+services:
+  - type: web
+    name: iptx-server
+    runtime: node
+    repo: https://github.com/zloy42/iptx-server
+    plan: free
+    region: singapore  # closest to Indonesia
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: SERVER_URL
+        value: https://iptx-server.onrender.com
+      - key: USERS
+        value: admin:admin123
+      - key: M3U_FILE
+        value: nasional.m3u
+      - key: NODE_VERSION
+        value: 20

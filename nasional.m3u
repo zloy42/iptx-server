@@ -1,0 +1,149 @@
+#EXTM3U x-tvg-url="https://www.open-epg.com/files/indonesia1.xml, https://www.open-epg.com/files/indonesia2.xml, https://www.open-epg.com/files/indonesia3.xml, https://www.open-epg.com/files/indonesia4.xml, https://www.open-epg.com/files/indonesia5.xml,
+#EXT-X-VERSION:6
+
+
+
+############## Nasional #############
+
+#EXTINF:-1 tvg-id="MNCTV.id" tvg-name="MNCTV" tvg-logo="https://iili.io/JMp3kla.png" group-title="NASIONAL",MNCTV
+#EXTVLCOPT:http-user-agent=android-R+
+#EXTVLCOPT:http-referrer=https://www.rctiplus.com
+https://rplus.xyssatu.workers.dev/lsbtv.m3u8?id=mnc
+
+#EXTINF:-1 tvg-id="RCTI.id" tvg-logo="https://iili.io/JMp36xI.png" group-title="NASIONAL",RCTI
+#EXTVLCOPT:http-user-agent=android-R+
+#EXTVLCOPT:http-referrer=https://www.rctiplus.com
+https://rplus.xyssatu.workers.dev/lsbtv.m3u8?id=rcti
+
+#EXTINF:-1 tvg-id="GTV HD - [Channel 431].id" tvg-logo="https://iili.io/JMp3joP.png" group-title="NASIONAL",GTV
+#EXTVLCOPT:http-user-agent=android-R+
+#EXTVLCOPT:http-referrer=https://www.rctiplus.com
+https://rplus.xyssatu.workers.dev/lsbtv.m3u8?id=gtv
+
+#EXTINF:-1 tvg-id="SCTV HD - [Channel 437].id" tvg-logo="https://iili.io/JMp3iiX.png" group-title="NASIONAL",SCTV
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+http://op-group1-swiftservehd-1.dens.tv/h/h217/02.m3u8
+
+#EXTINF:-1 tvg-id="Indosiar - [Channel 78].id" tvg-logo="https://iili.io/JMp3wV1.png" group-title="NASIONAL",INDOSIAR
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+http://op-group1-swiftservehd-1.dens.tv/h/h235/02.m3u8
+
+#EXTINF:-1 tvg-id="ANTV.id" tvg-logo="https://iili.io/JMp31cb.png" group-title="LOKAL",ANTV
+#KODIPROP:inputstream.adaptive.license_type=clearkey
+#KODIPROP:inputstream.adaptive.license_key=251c384e846841abafa1f7c723d57e66:e45b06a38cd261b74c5160f0912c042f
+#EXTVLCOPT:http-referrer=https://www.visionplus.id/ 
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36
+https://fta1-cdn-flr.visionplus.id/out/v1/0a6c6b1534444ab4bd903af8761e6747/index.mpd
+https://av-ch-cdn.mncnow.id/live/eds/ANTV/sa_dash/ANTV.mpd
+
+#EXTINF:-1 tvg-id="MOJI.id" tvg-logo="https://iili.io/JMp3vUJ.png" group-title="NASIONAL",MOJI TV
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+http://op-group1-swiftservehd-1.dens.tv/h/h207/02.m3u8
+
+#EXTINF:-1 group-title="NASIONAL" tvg-id="mentaritv.id" tvg-logo="https://jpeg.ly/mk0GA",MENTARI TV
+#EXTVLCOPT:http-referrer= https://www.indihometv.com
+https://cdn08jtedge.indihometv.com/dassdvr/134/mentaritv/manifest.mpd
+
+#EXTINF:-1 tvg-id="Trans TV.id" tvg-logo="https://iili.io/JMp3ZUG.png" group-title="NASIONAL",TRANS TV
+https://video.detik.com/transtv/smil:transtv.smil/chunklist_w962267898_b744100_sleng.m3u8
+
+#EXTINF:-1 tvg-id="Trans 7.id" tvg-logo="https://iili.io/JMp3Qls.png" group-title="NASIONAL",TRANS 7
+https://video.detik.com/trans7/smil:trans7.smil/chunklist_w1791373024_b744100_sleng.m3u8
+
+#EXTINF:-1 tvg-logo="https://iili.io/JMp3eKg.png" group-title="NASIONAL",MAGNA CH
+https://edge.medcom.id/live-edge/smil:magna.smil/playlist.m3u8
+
+#EXTINF:-1 tvg-id="Net TV.id" tvg-logo="https://www.dropbox.com/scl/fi/st2j25oxymahcbrwox9wc/MDTV.png?rlkey=dy1xcw5s20jyxmuvfqnua9vln&dl=1" group-title="NASIONAL",MDTV
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+https://op-group1-swiftservehd-1.dens.tv/h/h223/02.m3u8
+###http://khano.nng.cloudns.us/live/m3u8/id/6cdb3402d11f58d.m3u8
+
+#EXTINF:-1 tvg-id="RTV.id" tvg-logo="https://iili.io/JMp3PVt.png" group-title="NASIONAL",RTV
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+http://op-group1-swiftservehd-1.dens.tv/h/h10/01.m3u8
+
+#EXTINF:-1 tvg-id="Nusantara TV.id" tvg-logo="https://iili.io/2W8UsX2.png" group-title="NASIONAL",Nusantara TV
+https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8
+
+#EXTINF:-1 tvg-id="Hanacaraka TV - [Channel 90].id" tvg-logo="https://bit.ly/3Kgl9pi" group-title="NASIONAL",Hanacaraka TV
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+https://op-group1-swiftservehd-1.dens.tv/h/h77/index.m3u8
+
+
+
+########### Hiburan ###########
+
+#EXTINF:-1 tvg-id="Aniplus.id" tvg-logo="https://bit.ly/4msZKad" group-title="HIBURAN",Aniplus
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv
+https://op-group1-swiftservehd-1.dens.tv/h/h201/02.m3u8
+
+###EXTINF:-1 tvg-id="472.unifi" tvg-logo="https://iili.io/Jmo2ycG.png" group-title="HIBURAN",Animax
+
+#EXTINF:-1 tvg-id="Citra Entertainment.id" tvg-logo="https://iili.io/2MIQIj4.png" group-title="HIBURAN",Citra Entertainment
+#EXTVLCOPT:http-referrer= https://www.indihometv.com
+https://cdn08jtedge.indihometv.com/dassdvr/130/cdrama/manifest.mpd
+
+
+########## BERITA ##########
+
+#EXTINF:-1 tvg-id="TVRI.id" tvg-logo="https://www.dropbox.com/scl/fi/jnk1dmoeigv75uwxbec0p/TVRI.png?rlkey=xzid94v4p6unooq4ub68uedr8&dl=1" group-title="BERITA",TVRI Nasional
+https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8
+
+#EXTINF:-1 tvg-logo="https://iili.io/JV3xmPe.png" group-title="BERITA",TVRI World
+https://ott-balancer.tvri.go.id/live/eds/TVRIWorld/hls/TVRIWorld.m3u8
+
+#EXTINF:-1 tvg-id="" tvg-logo="https://www.dropbox.com/scl/fi/5nppaoelbh9ilhpepnpbg/TVRI-SPORT.png?rlkey=6y1zlphwawitwo7mnnsi79t1r&dl=1" group-title="BERITA",TVRI Sport
+https://ott-balancer.tvri.go.id/live/eds/SportHD/hls/SportHD.m3u8
+
+#EXTINF:-1 tvg-id="Metro TV.id" tvg-logo="https://iili.io/JV3xZtS.png" group-title="BERITA",Metro TV
+https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8
+
+#EXTINF:-1 tvg-id="iNews.id" tvg-logo="https://iili.io/JV3x4Fs.png" group-title="BERITA",iNews
+#EXTVLCOPT:http-user-agent=android-R+
+#EXTVLCOPT:http-referrer=https://www.rctiplus.com
+https://rplus.xyssatu.workers.dev/lsbtv.m3u8?id=inews
+
+#EXTINF:-1 tvg-id="CNN Indonesia.id" tvg-logo="https://iili.io/JV3xSnt.png" group-title="BERITA",CNN Indonesia
+https://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_w891045790_b384000_sleng.m3u8
+ 
+#EXTINF:-1 tvg-id="CNBC Indonesia.id" tvg-logo="https://iili.io/28yAlAN.png" group-title="BERITA",CNBC Indonesia
+https://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/chunklist_w1843433135_b384000_sleng.m3u8
+
+#EXTINF:-1 tvg-id="Kompas TV.id" tvg-logo="https://iili.io/JV3x6cG.png" group-title="BERITA",Kompas TV
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv/
+https://op-group1-swiftservehd-1.dens.tv/s/s104/02.m3u8
+
+#EXTINF:-1 tvg-id="TVOne.id" tvg-logo="https://iili.io/JV3xDo7.png" group-title="BERITA",tvOne
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv/
+http://op-group1-swiftservehd-1.dens.tv/h/h40/02.m3u8
+
+###EXTINF:-1 tvg-id="SindoNews.id" tvg-logo="https://iili.io/JV3xQN2.png" group-title="BERITA",Sindonews TV
+
+
+###EXTINF:-1 tvg-id="IDX.id" tvg-logo="https://iili.io/JV3xvtI.png" group-title="BERITA",IDX Channel
+
+
+#EXTINF:-1 tvg-id="IDTV.id" tvg-logo="https://iili.io/28yoeNn.png" group-title="BERITA",Beritasatu
+#EXTVLCOPT:http-user-agent=DensTv/3.1.5 (Linux;Android 13) ExoPlayerLib/2.18.1
+#EXTVLCOPT:http-referrer= https://www.dens.tv/
+https://op-group1-swiftservehd-1.dens.tv/h/h209/02.m3u8
+
+#EXTINF:-1 tvg-id="Jawa Pos TV.id" tvg-logo="https://iili.io/dA8evOF.png" group-title="BERITA",Jawa Pos TV (Surabaya)
+https://jawapostv.siar.us/jawapostv/live/playlist.m3u8
+
+#EXTINF:-1 tvg-logo="https://iili.io/JbtCoiu.png" group-title="BERITA",BN Channel
+http://live1.pro2cdnlive.com/live/channel21.flv?wsSecret=db55f728e8e1b8fb316f690b3c97c03e&wsABSTime=1763649240
+
+#EXTINF:-1 tvg-id="IDTV.id" tvg-logo="" group-title="LIVE",LIVE
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+#EXTVLCOPT:http-referrer= https://ppdd08.playerktidfintkd.shop/
+https://t7nt3-cf.wooblzlhl524.com/auth%3D16639d8338c221a7454952d51a27d3e7fb5723fe1729113929395bdf30950d0cc572b42ab6096ccfd686168bc5803787756d501f8b20b5b2365f848af3cc43d3050758694b45ec9c9f2c9807ae3e6a30da924a78adfcedec912de7d11d33a42b48631049447b90256235582baf6b9ba31e96db16b80755e1743bea3f4134797cd16b226ecda0e0e1d08ad0f7753d71b23ebfcd3eef26207d86a73d924069343151b970685c55d0b1af58a4c1378f739b%26cid%3D0bzSRsTzZhu8rCWdg8YO9251120%26_v%3D2%26_r%3DieYEHB%26_vis%3D3a2ce1b778c06e65eafbc9b3158764bb161579387f2275fef82168b5a587d711%26_vvs%3Df2dea3f6c7f81ba37a0373fb4053d66c82b4cc41f2af0372d39784465b5f2156/app/c384719.m3u8
