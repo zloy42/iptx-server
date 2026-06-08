@@ -278,7 +278,7 @@ function fetchWithHeaders(targetUrl, headers, redirects = 0) {
         fetchWithHeaders(redirectUrl, headers, redirects + 1).then(resolve, reject);
         return;
       }
-      resolve(res);
+      resolve({ response: res, finalUrl: targetUrl });
     });
 
     req.on('error', reject);
@@ -297,16 +297,40 @@ function proxyStream(req, res) {
     return res.status(404).send('Stream not found');
   }
 
+  const targetUrl = channel.stream_url;
+
   const headers = {
     'User-Agent': channel.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Referer': channel.referrer || ''
   };
 
-  console.log(`[PROXY] ${channel.name} → ${channel.stream_url}`);
+  console.log(`[PROXY] ${channel.name} → ${targetUrl}`);
 
-  fetchWithHeaders(channel.stream_url, headers)
-    .then((upstreamRes) => {
-      // Copy all headers except transfer-encoding
+  fetchWithHeaders(targetUrl, headers)
+    .then(({ response: upstreamRes, finalUrl }) => {
+      const contentType = upstreamRes.headers['content-type'] || '';
+
+      // For HLS playlists, rewrite relative URLs to absolute (pointing to CDN)
+      if (contentType.includes('mpegurl') || contentType.includes('x-mpegurl') || targetUrl.match(/\.m3u8?$/i)) {
+        let body = '';
+        upstreamRes.on('data', chunk => body += chunk.toString());
+        upstreamRes.on('end', () => {
+          const baseDir = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+          const rewritten = body.split('\n').map(line => {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) return line;
+            if (!trimmed.match(/^https?:\/\//i)) {
+              return new URL(trimmed, baseDir).href;
+            }
+            return line;
+          }).join('\n');
+          res.set('Content-Type', 'application/vnd.apple.mpegurl');
+          res.send(rewritten);
+        });
+        return;
+      }
+
+      // For everything else (TS segments, key files, etc.), pipe directly
       const respHeaders = { ...upstreamRes.headers };
       delete respHeaders['transfer-encoding'];
       res.writeHead(upstreamRes.statusCode, respHeaders);
